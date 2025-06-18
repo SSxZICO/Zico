@@ -65,20 +65,21 @@
         <p>Price: $30</p>
         <button class="buy-btn" onclick="buy('Product 3', 30)">Buy</button>
     </div>
-
+    <script src="https://telegram.org/js/telegram-web-app.js?57"></script>
     <script>
-        function buy(product, price) {
-            alert(`You selected ${product} for $${price}`);
-            // Здесь можно отправить данные в Telegram WebApp через Telegram.WebApp.sendData()
-            if (window.Telegram.WebApp) {
-                Telegram.WebApp.sendData(JSON.stringify({product, price}));
-            }
-        }
+        let tg = window.Telegram.WebApp;
+        let buy = document.getElementById('buy');
+        let order = document.getElementById('order');
 
-        // Расширить WebApp на весь экран
-        if (window.Telegram.WebApp) {
-            Telegram.WebApp.expand();
-        }
+        buy.addEventListener('click', () => {
+            document.getElementById('main').style.display = 'none';
+            document.getElementById('form').style.display = 'block';
+            document.getElementById('user_name').value = tg.initDataUnsafe.user.first_name + ' ' + tg.initDataUnsafe.user.last_name;
+        });
+
+        order.addEventListener('click', () => {
+            tg.close();
+        });
     </script>
 
 </body>
