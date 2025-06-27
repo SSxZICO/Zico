@@ -1,63 +1,68 @@
 # meta developer: @gde_zico
 import asyncio
+from telethon import events
 from .. import loader, utils
+
 
 @loader.tds
 class FarmMonacoMod(loader.Module):
-    """Автофарминг модуль для @xSpinBot. Автор: @gde_zico"""
+    """Модуль для фарминга @xSpinBot в указанном чате или теме.
+    Запуск:
+    - Для обычного чата: .farm2 [chat_id]
+    - Для темы: .farm2 [chat_id] [topic_id]"""
 
-    strings = {"name": "xSpinBotFarm"}
+    strings = {"name": "xSpinBot module by ssxzico"}
 
     def __init__(self):
         self.tasks = []
-        self.running_chat_id = None
+        self.chat_id = None
+        self.topic_id = None
 
-    async def b_run(self, client, chat_id):
+    async def b_run(self, client):
         while True:
             try:
-                await client.send_message(chat_id, "!б 5000")
+                if self.topic_id:
+                    await client.send_message(self.chat_id, "!б 5000", reply_to=self.topic_id)
+                else:
+                    await client.send_message(self.chat_id, "!б 5000")
                 await asyncio.sleep(4)
             except Exception as e:
-                print(f"[Farm] Error: {e}")
-                await client.send_message(chat_id, f"⚠️ Xatolik: {e}")
+                print(f"Ошибка отправки: {e}")
                 await asyncio.sleep(10)
 
     @loader.unrestricted
     @loader.ratelimit
     async def farm2cmd(self, message):
-        """Ishga tushurish: .farm2 [chat_id]"""
+        """Запустить автофарминг: .farm2 [chat_id] [topic_id (необязательно)]"""
         args = utils.get_args(message)
 
-        if self.tasks:
-            return await message.edit("⛔️ Farming allaqachon ishlamoqda. To‘xtatish uchun: .stop2")
-
-        if not args:
-            return await message.edit("❗️Iltimos, chat ID kiriting. Masalan: <code>.farm2 -1001234567890</code>")
-
-        chat_id = args[0]
+        if len(args) < 1:
+            await message.edit("❗️ Использование: <code>.farm2 [chat_id] [topic_id]</code>")
+            return
 
         try:
-            chat_id = int(chat_id)
+            self.chat_id = int(args[0])
+            self.topic_id = int(args[1]) if len(args) > 1 else None
         except ValueError:
-            return await message.edit("❗️Chat ID raqam bo‘lishi kerak. Masalan: <code>.farm2 -1001234567890</code>")
+            await message.edit("❗️ Chat ID и Topic ID должны быть числами.")
+            return
 
-        await message.edit(f"✅ Farming boshlandi.\nChat ID: <code>{chat_id}</code>\nKod: @gde_zico")
-        self.running_chat_id = chat_id
-        client = message.client
-        self.tasks = [asyncio.create_task(self.b_run(client, chat_id))]
+        if self.tasks:
+            await message.edit("⚠️ Фарм уже запущен.")
+            return
+
+        await message.edit("✅ Автофарминг запущен.")
+        self.tasks = [asyncio.create_task(self.b_run(message.client))]
 
     @loader.unrestricted
     @loader.ratelimit
     async def stop2cmd(self, message):
-        """To‘xtatish: .stop2"""
+        """Остановить фарминг: .stop2"""
         if not self.tasks:
-            return await message.edit("ℹ️ Hozirda hech qanday farming ishlamayapti.")
+            await message.edit("⛔️ Автофарминг не запущен.")
+            return
 
         for task in self.tasks:
             task.cancel()
-
-        self.tasks = []
-        cid = self.running_chat_id or "Noma'lum"
-        self.running_chat_id = None
-
-        await message.edit(f"🛑 Farming to‘xtatildi.\nChat ID: <code>{cid}</code>\nKod: @gde_zico")
+        self.tasks.clear()
+        await message.edit("🛑 Автофарминг остановлен.")
